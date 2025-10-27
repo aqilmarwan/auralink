@@ -9,11 +9,9 @@ const Footer = () => {
             <div className="flex h-[50px] py-2 px-12 items-center justify-center">
                 <div className="flex flex-col w-full">
                     <div className="flex w-full lg:w-auto items-center justify-between">
-                        <a href="/" className="text-lg">
-                            <Link href="/" className="flex z-40 font-semibold">
-                                <span>AuraLink</span>
-                            </Link>
-                        </a>
+                        <Link href="/" className="text-lg flex z-40 font-semibold">
+                            <span>AuraLink</span>
+                        </Link>
                     </div>
                     <div className="flex flex-row space-x-4">
                         <div className="flex items-center justify-between">
