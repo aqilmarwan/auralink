@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package auralink;
+
+// Transcription Agent Service
+service TranscriptionService {
+  rpc TranscribeVideo(TranscribeRequest) returns (TranscribeResponse);
+  rpc StreamTranscription(TranscribeRequest) returns (stream TranscribeChunk);
+}
+
+// Vision Agent Service  
+service VisionService {
+  rpc DetectObjects(ImageRequest) returns (ObjectDetectionResponse);
+  rpc ExtractText(ImageRequest) returns (TextExtractionResponse);
+  rpc IdentifyGraphs(ImageRequest) returns (GraphIdentificationResponse);
+}
+
+// Generation Agent Service
+service GenerationService {
+  rpc GeneratePowerPoint(GenerateRequest) returns (GenerateResponse);
+  rpc GeneratePDF(GenerateRequest) returns (GenerateResponse);
+  rpc GenerateSummary(ChatHistoryRequest) returns (SummaryResponse);
+}
+
+// Common Messages
+message TranscribeRequest {
+  string file_id = 1;
+  bytes audio_data = 2;
+  string format = 3; // "mp4", "wav", etc.
+}
+
+message TranscribeResponse {
+  string text = 1;
+  repeated TimestampSegment segments = 2;
+  string language = 3;
+  double confidence = 4;
+}
+
+message TimestampSegment {
+  string text = 1;
+  double start_time = 2;
+  double end_time = 3;
+}
+
+message TranscribeChunk {
+  string text = 1;
+  bool is_final = 2;
+}
+
+message ImageRequest {
+  string file_id = 1;
+  bytes image_data = 2;
+  int32 frame_number = 3;
+}
+
+message ObjectDetectionResponse {
+  repeated DetectedObject objects = 1;
+  string caption = 2;
+}
+
+message DetectedObject {
+  string label = 1;
+  double confidence = 2;
+  BoundingBox bbox = 3;
+}
+
+message BoundingBox {
+  int32 x = 1;
+  int32 y = 2;
+  int32 width = 3;
+  int32 height = 4;
+}
+
+message TextExtractionResponse {
+  repeated ExtractedText text_regions = 1;
+  string full_text = 2;
+}
+
+message ExtractedText {
+  string text = 1;
+  BoundingBox bbox = 2;
+  double confidence = 3;
+}
+
+message GraphIdentificationResponse {
+  repeated GraphInfo graphs = 1;
+  string description = 2;
+}
+
+message GraphInfo {
+  string type = 1; // "line", "bar", "pie", etc.
+  string data_summary = 2;
+  BoundingBox bbox = 3;
+}
+
+message GenerateRequest {
+  string file_id = 1;
+  repeated string key_points = 2;
+  string output_format = 3; // "pdf", "ppt"
+}
+
+message GenerateResponse {
+  string output_file_path = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+message ChatHistoryRequest {
+  string file_id = 1;
+  int32 message_limit = 2;
+}
+
+message SummaryResponse {
+  string summary = 1;
+  repeated string key_topics = 2;
+}
