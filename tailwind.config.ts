@@ -72,6 +72,6 @@ module.exports = {
         },
       },
     },
-    plugins: [], // Remove the require() calls that are causing errors
+    plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
   };
   
