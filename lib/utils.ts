@@ -1,5 +1,5 @@
 import { type ClassValue, clsx } from 'clsx';
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
@@ -13,8 +13,8 @@ export function absoluteUrl(path: string) {
 }
 
 export function constructMetadata({
-  title = 'AuraLink - AI-powered voice assistant',
-  description = 'AuraLink is an AI-powered voice assistant that makes chatting to your PDF files easy.',
+  title = 'Auralink - the SaaS for students',
+  description = 'Auralink is an open-source software to make chatting to your MP4 files easy.',
   icons = '/favicon.ico',
   noIndex = false,
 }: {
@@ -37,13 +37,18 @@ export function constructMetadata({
       description,
     },
     icons,
-    metadataBase: new URL('https://auralink.vercel.app/'),
-    themeColor: '#FFF',
+    metadataBase: new URL('https://fraser-pdf.vercel.app/'),
     ...(noIndex && {
       robots: {
         index: false,
         follow: false,
       },
     }),
+  };
+}
+
+export function constructViewport(): Viewport {
+  return {
+    themeColor: '#FFF',
   };
 }
