@@ -1,6 +1,6 @@
 import React from 'react'
 import Link from 'next/link';
-import { GitHubLogoIcon, TwitterLogoIcon } from '@radix-ui/react-icons'
+import { GitHubLogoIcon } from '@radix-ui/react-icons'
 
 const Footer = () => {
     return (
