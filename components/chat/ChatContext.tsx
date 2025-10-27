@@ -1,7 +1,7 @@
 import { ReactNode, createContext, useRef, useState } from 'react';
 import { useToast } from '../ui/use-toast';
-import { useMutation } from '@tanstack/react-query';
-import { trpc } from '@/app/_trpc/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { invoke } from '@tauri-apps/api/core';
 import { INFINITE_QUERY_LIMIT } from '@/config/infinite-query';
 
 type StreamResponse = {
@@ -23,87 +23,80 @@ interface Props {
   children: ReactNode;
 }
 
+interface Message {
+  id: string;
+  text: string;
+  isUserMessage: boolean;
+  createdAt: string;
+}
+
+// Query key factory
+const getFileMessagesQueryKey = (fileId: string) => ['messages', fileId];
+
 export const ChatContextProvider = ({ fileId, children }: Props) => {
   const [message, setMessage] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  const utils = trpc.useContext();
-
   const { toast } = useToast();
-
   const backupMessage = useRef('');
+  const queryClient = useQueryClient();
 
   const { mutate: sendMessage } = useMutation({
     mutationFn: async ({ message }: { message: string }) => {
-      const response = await fetch('/api/message', {
-        method: 'POST',
-        body: JSON.stringify({
-          fileId,
-          message,
-        }),
+      // Call Tauri command which internally uses gRPC
+      const response = await invoke<string>('send_message', {
+        fileId,
+        message,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
-
-      return response.body;
+      
+      return response;
     },
+    
     onMutate: async ({ message }) => {
       backupMessage.current = message;
       setMessage('');
 
-      // step 1
-      await utils.getFileMessages.cancel();
+      // Optimistic update: Add user message immediately
+      const queryKey = getFileMessagesQueryKey(fileId);
+      const previousData = queryClient.getQueryData<{ 
+        pages: { messages: Message[] }[], 
+        pageParams: unknown[] 
+      }>(queryKey);
 
-      // step 2
-      const previousMessages = utils.getFileMessages.getInfiniteData();
-
-      // step 3
-      utils.getFileMessages.setInfiniteData(
-        { fileId, limit: INFINITE_QUERY_LIMIT },
-        (old) => {
-          if (!old) {
-            return {
-              pages: [],
-              pageParams: [],
-            };
-          }
-
-          let newPages = [...old.pages];
-
-          let latestPage = newPages[0]!;
-
-          latestPage.messages = [
-            {
-              createdAt: new Date().toISOString(),
-              id: crypto.randomUUID(),
-              text: message,
-              isUserMessage: true,
-            },
-            ...latestPage.messages,
-          ];
-
-          newPages[0] = latestPage;
-
-          return {
-            ...old,
-            pages: newPages,
-          };
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old) {
+          return { pages: [], pageParams: [] };
         }
-      );
+
+        let newPages = [...old.pages];
+        let latestPage = newPages[0]!;
+
+        latestPage.messages = [
+          {
+            createdAt: new Date().toISOString(),
+            id: crypto.randomUUID(),
+            text: message,
+            isUserMessage: true,
+          },
+          ...latestPage.messages,
+        ];
+
+        newPages[0] = latestPage;
+
+        return {
+          ...old,
+          pages: newPages,
+        };
+      });
 
       setIsLoading(true);
 
-      return {
-        previousMessages:
-          previousMessages?.pages.flatMap((page) => page.messages) ?? [],
-      };
+      return { previousData };
     },
-    onSuccess: async (stream) => {
+
+    onSuccess: async (response) => {
       setIsLoading(false);
 
-      if (!stream) {
+      if (!response) {
         return toast({
           title: 'There was a problem sending this message',
           description: 'Please refresh this page and try again',
@@ -111,82 +104,77 @@ export const ChatContextProvider = ({ fileId, children }: Props) => {
         });
       }
 
-      const reader = stream.getReader();
-      const decoder = new TextDecoder();
-      let done = false;
+      // Add AI response to query cache
+      const queryKey = getFileMessagesQueryKey(fileId);
+      
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old) return { pages: [], pageParams: [] };
 
-      // accumulated response
-      let accResponse = '';
-
-      while (!done) {
-        const { value, done: doneReading } = await reader.read();
-        done = doneReading;
-        const chunkValue = decoder.decode(value);
-
-        accResponse += chunkValue;
-
-        // append chunk to the actual message
-        utils.getFileMessages.setInfiniteData(
-          { fileId, limit: INFINITE_QUERY_LIMIT },
-          (old) => {
-            if (!old) return { pages: [], pageParams: [] };
-
-            let isAiResponseCreated = old.pages.some((page) =>
-              page.messages.some((message) => message.id === 'ai-response')
-            );
-
-            let updatedPages = old.pages.map((page) => {
-              if (page === old.pages[0]) {
-                let updatedMessages;
-
-                if (!isAiResponseCreated) {
-                  updatedMessages = [
-                    {
-                      createdAt: new Date().toISOString(),
-                      id: 'ai-response',
-                      text: accResponse,
-                      isUserMessage: false,
-                    },
-                    ...page.messages,
-                  ];
-                } else {
-                  updatedMessages = page.messages.map((message) => {
-                    if (message.id === 'ai-response') {
-                      return {
-                        ...message,
-                        text: accResponse,
-                      };
-                    }
-                    return message;
-                  });
-                }
-
-                return {
-                  ...page,
-                  messages: updatedMessages,
-                };
-              }
-
-              return page;
-            });
-
-            return { ...old, pages: updatedPages };
-          }
+        const isAiResponseCreated = old.pages.some((page: { messages: Message[] }) =>
+          page.messages.some((message: Message) => message.id === 'ai-response')
         );
-      }
+
+        let updatedPages = old.pages.map((page: { messages: Message[] }) => {
+          if (page === old.pages[0]) {
+            let updatedMessages;
+
+            if (!isAiResponseCreated) {
+              updatedMessages = [
+                {
+                  createdAt: new Date().toISOString(),
+                  id: 'ai-response',
+                  text: response,
+                  isUserMessage: false,
+                },
+                ...page.messages,
+              ];
+            } else {
+              updatedMessages = page.messages.map((message: Message) => {
+                if (message.id === 'ai-response') {
+                  return {
+                    ...message,
+                    text: response,
+                  };
+                }
+                return message;
+              });
+            }
+
+            return {
+              ...page,
+              messages: updatedMessages,
+            };
+          }
+
+          return page;
+        });
+
+        return { ...old, pages: updatedPages };
+      });
     },
 
     onError: (_, __, context) => {
       setMessage(backupMessage.current);
-      utils.getFileMessages.setData(
-        { fileId },
-        { messages: context?.previousMessages ?? [] }
-      );
+      
+      const queryKey = getFileMessagesQueryKey(fileId);
+      if (context?.previousData) {
+        queryClient.setQueryData(queryKey, context.previousData);
+      }
+      
+      toast({
+        title: 'Error sending message',
+        description: 'Please try again',
+        variant: 'destructive',
+      });
     },
+
     onSettled: async () => {
       setIsLoading(false);
-
-      await utils.getFileMessages.invalidate({ fileId });
+      
+      // Invalidate messages to refetch from backend
+      await queryClient.invalidateQueries({
+        queryKey: getFileMessagesQueryKey(fileId),
+      });
     },
   });
 
