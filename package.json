@@ -22,6 +22,7 @@
     "@vercel/analytics": "^1.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "lucide-react": "^0.548.0",
     "next": "16.0.0",
     "openvino-node": "^2025.3.0",

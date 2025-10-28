@@ -1,46 +1,57 @@
 'use client';
 
-import { trpc } from '@/app/_trpc/client';
 import UploadButton from './UploadButton';
 import { Ghost, Loader2, MessageSquare, Plus, Trash } from 'lucide-react';
 import Skeleton from 'react-loading-skeleton';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Button } from './ui/button';
-import { useState } from 'react';
-import { getUserSubscriptionPlan } from '@/lib/stripe';
+import { useEffect, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 
-interface PageProps {
-  subscriptionPlan: Awaited<ReturnType<typeof getUserSubscriptionPlan>>;
-}
+type FileItem = {
+  id: string;
+  name: string;
+  createdAt: string;
+};
 
-const Dashboard = ({ subscriptionPlan }: PageProps) => {
-  const [currentlyDeletingFile, setCurrentlyDeletingFile] = useState<
-    string | null
-  >(null);
+const Dashboard = () => {
+  const [files, setFiles] = useState<FileItem[] | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [currentlyDeletingFile, setCurrentlyDeletingFile] = useState<string | null>(null);
 
-  const utils = trpc.useContext();
+  const fetchFiles = async () => {
+    setIsLoading(true);
+    try {
+      const result = await invoke<FileItem[]>('list_files');
+      setFiles(result ?? []);
+    } catch (e) {
+      setFiles([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const { data: files, isLoading } = trpc.getUserFiles.useQuery();
+  useEffect(() => {
+    fetchFiles();
+  }, []);
 
-  const { mutate: deleteFile } = trpc.deleteFile.useMutation({
-    onSuccess: () => {
-      utils.getUserFiles.invalidate();
-    },
-    onMutate({ id }) {
-      setCurrentlyDeletingFile(id);
-    },
-    onSettled() {
+  const handleDelete = async (id: string) => {
+    setCurrentlyDeletingFile(id);
+    try {
+      await invoke('delete_file', { id });
+      await fetchFiles();
+    } finally {
       setCurrentlyDeletingFile(null);
-    },
-  });
+    }
+  };
 
   return (
     <main className="mx-auto max-w-7xl md:p-10">
       <div className="mt-8 flex flex-col items-start justify-between gap-4 border-b border-gray-200 pb-5 sm:flex-row sm:items-center sm:gap-0">
         <h1 className="mb-3 font-bold text-5xl text-gray-900">My Files</h1>
 
-        <UploadButton isSubscribed={subscriptionPlan.isSubscribed} />
+        <UploadButton />
       </div>
 
       {/* display all user files */}
@@ -85,7 +96,7 @@ const Dashboard = ({ subscriptionPlan }: PageProps) => {
                   </div>
 
                   <Button
-                    onClick={() => deleteFile({ id: file.id })}
+                    onClick={() => handleDelete(file.id)}
                     size="sm"
                     className="w-full"
                     variant="destructive"
