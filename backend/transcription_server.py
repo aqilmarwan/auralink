@@ -14,8 +14,7 @@ import audio_service_pb2 as audio_pb2
 # Initialize OpenVINO
 core = Core()
 
-########################################################
-# Load models (these would be OpenVINO models)
+# Load models (these would be your OpenVINO models)
 # whisper_model = core.read_model("whisper_model.xml")
 # whisper_model = core.compile_model(whisper_model, "CPU")
 
@@ -67,7 +66,7 @@ class TranscriptionServiceImpl(audio_pb2_grpc.TranscriptionServiceServicer):
     
     async def StreamTranscription(self, request, context):
         """Stream transcription chunks (for real-time processing)."""
-        # Implement streaming transcription if needed
+        ### Implement streaming transcription if needed
         yield audio_pb2.TranscribeChunk(
             text="Streaming not implemented yet",
             is_final=False
@@ -81,6 +80,7 @@ async def serve():
         TranscriptionServiceImpl(), server
     )
     
+    # Listen on port 50051
     listen_addr = '[::]:50051'
     server.add_insecure_port(listen_addr)
     
