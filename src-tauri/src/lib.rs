@@ -1,32 +1,29 @@
 use tauri::Manager;
-use tokio::runtime::Runtime;
 mod grpc_client;
 
 #[tauri::command]
 async fn upload_video(file_path: String, file_id: String) -> Result<String, String> {
-    // Read file data
     let file_data = std::fs::read(&file_path).map_err(|e| e.to_string())?;
-    
-    // Call gRPC server
-    let result = grpc_client::transcribe_video(file_id.clone(), file_data)
+    let result = grpc_client::transcribe_video(file_id, file_data)
         .await
         .map_err(|e| e.to_string())?;
-    
-    // Store transcription result in local storage - probably better
-    // TO DO
-    
     Ok(result)
 }
 
 #[tauri::command]
-async fn get_temp_path() -> Result<String, String> {
-    let temp_dir = std::env::temp_dir();
-    Ok(temp_dir.to_str().unwrap().to_string())
+async fn upload_video_bytes(file_id: String, bytes: Vec<u8>) -> Result<String, String> {
+    grpc_client::transcribe_video(file_id, bytes)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-async fn get_transcription(file_id: String) -> Result<String, String> {
-    // Retrieve from local cache or call gRPC again
+async fn get_temp_path() -> Result<String, String> {
+    Ok(std::env::temp_dir().to_string_lossy().to_string())
+}
+
+#[tauri::command]
+async fn get_transcription(_file_id: String) -> Result<String, String> {
     Ok("Transcription text".to_string())
 }
 
@@ -35,19 +32,10 @@ pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             upload_video,
+            upload_video_bytes,
             get_transcription,
             get_temp_path
         ])
-        .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
-            Ok(())
-        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
