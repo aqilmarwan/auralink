@@ -10,7 +10,7 @@ import { Progress } from './ui/progress';
 import { useToast } from './ui/use-toast';
 import { useRouter } from 'next/navigation';
 import { invoke } from '@tauri-apps/api/core';
-import { writeBinaryFile } from '@tauri-apps/api/fs';
+import { writeFile } from '@tauri-apps/plugin-fs';
 
 const MAX_UPLOAD_MB = 16; // uniform access for everyone
 
@@ -53,13 +53,13 @@ const UploadDropzone = () => {
       const tempPath = await invoke<string>('get_temp_path');
       const filePath = `${tempPath}/${fileId}.${file.name.split('.').pop()}`;
       
-      await writeBinaryFile(filePath, uint8Array);
+      await writeFile(filePath, uint8Array);
 
       // Call Tauri command which uses gRPC
-      const result = await invoke<string>('upload_video', {
-        filePath,
-        fileId,
-      });
+      const result = await invoke<string>('upload_video_bytes', {
+           fileId,
+           bytes: Array.from(uint8Array),
+         });
 
       clearInterval(progressInterval);
       setUploadProgress(100);
