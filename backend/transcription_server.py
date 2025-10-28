@@ -1,45 +1,93 @@
-use tonic::Request;
-use auralink::transcription_service_client::TranscriptionServiceClient;
-use auralink::vision_service_client::VisionServiceClient;
-use auralink::generation_service_client::GenerationServiceClient;
+import asyncio
+import grpc
+from concurrent.futures import ThreadPoolExecutor
+import numpy as np
+from openvino.runtime import Core
+import moviepy.editor as mp
+import whisper
+from typing import Optional
 
-pub mod auralink {
-    tonic::include_proto!("auralink");
-}
+# Import generated gRPC code
+import audio_service_pb2_grpc as audio_pb2_grpc
+import audio_service_pb2 as audio_pb2
 
-pub struct GrpcClients {
-    pub transcription: TranscriptionServiceClient<tonic::transport::Channel>,
-    pub vision: VisionServiceClient<tonic::transport::Channel>,
-    pub generation: GenerationServiceClient<tonic::transport::Channel>,
-}
+# Initialize OpenVINO
+core = Core()
 
-impl GrpcClients {
-    pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let channel = tonic::transport::Channel::from_static("http://[::1]:50051")
-            .connect()
-            .await?;
-        
-        Ok(Self {
-            transcription: TranscriptionServiceClient::new(channel.clone()),
-            vision: VisionServiceClient::new(channel.clone()),
-            generation: GenerationServiceClient::new(channel),
-        })
-    }
-}
+########################################################
+# Load models (these would be OpenVINO models)
+# whisper_model = core.read_model("whisper_model.xml")
+# whisper_model = core.compile_model(whisper_model, "CPU")
 
-pub async fn transcribe_video(file_id: String, audio_data: Vec<u8>) -> Result<String, String> {
-    let mut clients = GrpcClients::new().await.map_err(|e| e.to_string())?;
+# Or use OpenAI Whisper directly (OpenVINO optimized)
+whisper_model = whisper.load_model("base")
+
+
+class TranscriptionServiceImpl(audio_pb2_grpc.TranscriptionServiceServicer):
+    async def TranscribeVideo(self, request, context):
+        """Process video using OpenVINO/Whisper and return transcription."""
+        try:
+            file_id = request.file_id
+            audio_data = request.audio_data
+            format_type = request.format
+            
+            # Save uploaded file
+            temp_path = f"/tmp/{file_id}.{format_type}"
+            with open(temp_path, 'wb') as f:
+                f.write(audio_data)
+            
+            # Extract audio from video
+            video = mp.VideoFileClip(temp_path)
+            audio_path = f"/tmp/{file_id}_audio.wav"
+            video.audio.write_audiofile(audio_path, verbose=False, logger=None)
+            
+            # Transcribe using Whisper
+            result = whisper_model.transcribe(audio_path)
+            
+            # Process segments for timestamped response
+            segments = []
+            for segment in result.get("segments", []):
+                segments.append(audio_pb2.TimestampSegment(
+                    text=segment["text"],
+                    start_time=segment["start"],
+                    end_time=segment["end"]
+                ))
+            
+            return audio_pb2.TranscribeResponse(
+                text=result.get("text", ""),
+                segments=segments,
+                language=result.get("language", "unknown"),
+                confidence=0.95  # Whisper confidence
+            )
+            
+        except Exception as e:
+            context.set_code(grpc.StatusCode.INTERNAL_ERROR)
+            context.set_details(f"Transcription failed: {str(e)}")
+            return audio_pb2.TranscribeResponse()
     
-    let request = Request::new(auralink::TranscribeRequest {
-        file_id,
-        audio_data,
-        format: "mp4".to_string(),
-    });
+    async def StreamTranscription(self, request, context):
+        """Stream transcription chunks (for real-time processing)."""
+        # Implement streaming transcription if needed
+        yield audio_pb2.TranscribeChunk(
+            text="Streaming not implemented yet",
+            is_final=False
+        )
+
+
+async def serve():
+    server = grpc.aio.server(ThreadPoolExecutor(max_workers=10))
     
-    let response = clients.transcription
-        .transcribe_video(request)
-        .await
-        .map_err(|e| e.to_string())?;
+    audio_pb2_grpc.add_TranscriptionServiceServicer_to_server(
+        TranscriptionServiceImpl(), server
+    )
     
-    Ok(response.into_inner().text)
-}
+    listen_addr = '[::]:50051'
+    server.add_insecure_port(listen_addr)
+    
+    print(f"Server starting on {listen_addr}")
+    await server.start()
+    await server.wait_for_termination()
+
+
+if __name__ == '__main__':
+    asyncio.run(serve())
