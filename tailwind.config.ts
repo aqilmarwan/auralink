@@ -3,12 +3,15 @@ module.exports = {
     darkMode: ['class'],
     content: [
       './src/**/*.{ts,tsx,mdx}',
+      './src/**/*.{js,ts,jsx,tsx}',
       './app/**/*.{ts,tsx,mdx}',
       './components/**/*.{ts,tsx,mdx}',
       './pages/**/*.{ts,tsx,mdx}',
+      "./index.html",
     ],
     theme: {
       container: {
+        extend: {},
         center: true,
         padding: '2rem',
         screens: { '2xl': '1400px' },
@@ -64,5 +67,4 @@ module.exports = {
         },
       },
     },
-    plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
   };
