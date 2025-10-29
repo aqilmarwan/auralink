@@ -1,10 +1,9 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'export',
-  images: {
-    unoptimized: true,
-  },
+  output: "export",
+  distDir: "out",
+  images: { unoptimized: true },
   // Environment variables for gRPC
   env: {
     GRPC_ENDPOINT: 'localhost:50051',
@@ -23,7 +22,9 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  turbopack: {},
+  turbopack: {
+    root: "./", 
+  },
 };
 
 export default nextConfig;
