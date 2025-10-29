@@ -2,12 +2,12 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "auralink",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.auralink.app",
   "build": {
-    "frontendDist": "../out",
-    "devUrl": "http://localhost:3000",
+    "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "frontendDist": "../out",
+    "devUrl": "http://localhost:3000"
   },
   "app": {
     "windows": [
