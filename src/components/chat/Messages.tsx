@@ -1,4 +1,3 @@
-import { trpc } from '@/app/_trpc/client';
 import { INFINITE_QUERY_LIMIT } from '@/config/infinite-query';
 import { Loader2, MessageSquare } from 'lucide-react';
 import Skeleton from 'react-loading-skeleton';
@@ -6,27 +5,57 @@ import Message from './Message';
 import { useContext, useEffect, useRef } from 'react';
 import { ChatContext } from './ChatContext';
 import { useIntersection } from '@mantine/hooks';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { invoke } from '@tauri-apps/api/core';
+import { isTauri } from '@/lib/runtime';
+import { Message as MessageType } from '@/types/message';
 
 interface MessagesProps {
   fileId: string;
 }
 
+interface GetFileMessagesResponse {
+  messages: MessageType[];
+  nextCursor?: string | null;
+}
+
 const Messages = ({ fileId }: MessagesProps) => {
   const { isLoading: isAiThinking } = useContext(ChatContext);
 
-  const { data, isLoading, fetchNextPage } =
-    trpc.getFileMessages.useInfiniteQuery(
-      {
-        fileId,
-        limit: INFINITE_QUERY_LIMIT,
-      },
-      {
-        getNextPageParam: (lastPage) => lastPage?.nextCursor,
-        keepPreviousData: true,
+  const { data, isLoading, fetchNextPage } = useInfiniteQuery<
+    GetFileMessagesResponse,
+    Error
+  >({
+    queryKey: ['messages', fileId],
+    queryFn: async ({ pageParam }) => {
+      if (isTauri()) {
+        const response = await invoke<GetFileMessagesResponse>(
+          'get_file_messages',
+          {
+            fileId,
+            limit: INFINITE_QUERY_LIMIT,
+            cursor: pageParam ?? null,
+          }
+        );
+        return response;
+      } else {
+        // Fallback for web (if needed)
+        const cursor = pageParam as string | undefined;
+        const params = new URLSearchParams({
+          limit: INFINITE_QUERY_LIMIT.toString(),
+        });
+        if (cursor) params.set('cursor', cursor);
+        
+        const res = await fetch(`/api/messages/${fileId}?${params}`);
+        if (!res.ok) throw new Error('Failed to fetch messages');
+        return (await res.json()) as GetFileMessagesResponse;
       }
-    );
+    },
+    getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
+    initialPageParam: undefined as string | undefined,
+  });
 
-  const messages = data?.pages.flatMap((page) => page.messages);
+  const messages = data?.pages.flatMap((page) => page.messages) ?? [];
 
   const loadingMessage = {
     createdAt: new Date().toISOString(),
@@ -41,7 +70,7 @@ const Messages = ({ fileId }: MessagesProps) => {
 
   const combinedMessages = [
     ...(isAiThinking ? [loadingMessage] : []),
-    ...(messages ?? []),
+    ...messages,
   ];
 
   const lastMessageRef = useRef<HTMLDivElement>(null);
