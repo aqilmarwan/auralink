@@ -24,7 +24,7 @@ impl GrpcClients {
         Ok(Self {
             transcription: TranscriptionServiceClient::new(channel.clone()),
             vision: VisionServiceClient::new(channel.clone()),
-            generation: GenerationServiceClient::new(channel),
+            generation: GenerationServiceClient::new(channel.clone()),
             chat: ChatServiceClient::new(channel),
         })
     }

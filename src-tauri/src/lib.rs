@@ -27,19 +27,6 @@ async fn get_transcription(_file_id: String) -> Result<String, String> {
     Ok("Transcription text".to_string())
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![
-            upload_video,
-            upload_video_bytes,
-            get_transcription,
-            get_temp_path
-        ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
-}
-
 #[tauri::command]
 async fn get_file_messages(
     file_id: String,
