@@ -39,3 +39,28 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[tauri::command]
+async fn get_file_messages(
+    file_id: String,
+    limit: i32,
+    cursor: Option<String>,
+) -> Result<serde_json::Value, String> {
+    grpc_client::get_file_messages(file_id, limit, cursor)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            upload_video,
+            upload_video_bytes,
+            get_transcription,
+            get_temp_path,
+            get_file_messages,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
