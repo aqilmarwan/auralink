@@ -1,6 +1,6 @@
 # Auralink
 
-<p align="left">
+<p align="centre">
   <img src="public/trace.svg" alt="Auralink" width="96" />
 </p>
 
