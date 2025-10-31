@@ -52,19 +52,41 @@ export const ChatContextProvider = ({ fileId, children }: Props) => {
 
       const queryKey = getFileMessagesQueryKey(fileId);
       queryClient.setQueryData(queryKey, (old: any) => {
-        if (!old) return { pages: [], pageParams: [] };
+        const now = new Date().toISOString();
+        if (!old || !old.pages || old.pages.length === 0) {
+          return {
+            pages: [
+              {
+                messages: [
+                  {
+                    createdAt: now,
+                    id: crypto.randomUUID(),
+                    text: message,
+                    isUserMessage: true,
+                  },
+                ],
+              },
+            ],
+            pageParams: [],
+          };
+        }
         let newPages = [...old.pages];
-        let latestPage = newPages[0]!;
-        latestPage.messages = [
-          {
-            createdAt: new Date().toISOString(),
-            id: crypto.randomUUID(),
-            text: message,
-            isUserMessage: true,
-          },
-          ...latestPage.messages,
-        ];
-        newPages[0] = latestPage;
+        // Append to the end to keep chronological ASC order (top->bottom oldest->newest)
+        const lastPageIndex = newPages.length - 1;
+        const lastPage = newPages[lastPageIndex];
+        const updatedLastPage = {
+          ...lastPage,
+          messages: [
+            ...lastPage.messages,
+            {
+              createdAt: now,
+              id: crypto.randomUUID(),
+              text: message,
+              isUserMessage: true,
+            },
+          ],
+        };
+        newPages[lastPageIndex] = updatedLastPage;
         return { ...old, pages: newPages };
       });
 
@@ -83,33 +105,42 @@ export const ChatContextProvider = ({ fileId, children }: Props) => {
       }
       const queryKey = getFileMessagesQueryKey(fileId);
       queryClient.setQueryData(queryKey, (old: any) => {
-        if (!old) return { pages: [], pageParams: [] };
-        const isAiResponseCreated = old.pages.some((page: { messages: Message[] }) =>
-          page.messages.some((message: Message) => message.id === 'ai-response')
-        );
-        let updatedPages = old.pages.map((page: { messages: Message[] }) => {
-          if (page === old.pages[0]) {
-            let updatedMessages;
-            if (!isAiResponseCreated) {
-              updatedMessages = [
-                {
-                  createdAt: new Date().toISOString(),
-                  id: 'ai-response',
-                  text: response,
-                  isUserMessage: false,
-                },
-                ...page.messages,
-              ];
-            } else {
-              updatedMessages = page.messages.map((message: Message) =>
-                message.id === 'ai-response' ? { ...message, text: response } : message
-              );
-            }
-            return { ...page, messages: updatedMessages };
-          }
-          return page;
-        });
-        return { ...old, pages: updatedPages };
+        const now = new Date().toISOString();
+        if (!old || !old.pages || old.pages.length === 0) {
+          return {
+            pages: [
+              {
+                messages: [
+                  {
+                    createdAt: now,
+                    id: 'ai-response',
+                    text: response,
+                    isUserMessage: false,
+                  },
+                ],
+              },
+            ],
+            pageParams: [],
+          };
+        }
+        // Append AI response immediately after the user's message (i.e., at the end)
+        let newPages = [...old.pages];
+        const lastPageIndex = newPages.length - 1;
+        const lastPage = newPages[lastPageIndex];
+        const updatedLastPage = {
+          ...lastPage,
+          messages: [
+            ...lastPage.messages,
+            {
+              createdAt: now,
+              id: 'ai-response',
+              text: response,
+              isUserMessage: false,
+            },
+          ],
+        };
+        newPages[lastPageIndex] = updatedLastPage;
+        return { ...old, pages: newPages };
       });
     },
 
