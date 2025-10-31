@@ -42,17 +42,8 @@ export const ChatContextProvider = ({ fileId, children }: Props) => {
 
   const { mutate: sendMessage } = useMutation({
     mutationFn: async ({ message }: { message: string }) => {
-      if (isTauri()) {
-        return await invoke<string>('send_message', { fileId, message });
-      }
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileId, message }),
-      });
-      if (!res.ok) throw new Error('Failed to send message');
-      const data = await res.json();
-      return data.text as string;
+      // Fully local mode: always route through Tauri backend
+      return await invoke<string>('send_message', { fileId, message });
     },
 
     onMutate: async ({ message }) => {
