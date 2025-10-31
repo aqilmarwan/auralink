@@ -22,38 +22,19 @@ interface GetFileMessagesResponse {
 const Messages = ({ fileId }: MessagesProps) => {
   const { isLoading: isAiThinking } = useContext(ChatContext);
 
-  const { data, isLoading, fetchNextPage } = useInfiniteQuery<
-    GetFileMessagesResponse,
-    Error
-  >({
-    queryKey: ['messages', fileId],
-    queryFn: async ({ pageParam }) => {
-      if (isTauri()) {
-        const response = await invoke<GetFileMessagesResponse>(
-          'get_file_messages',
-          {
-            fileId,
-            limit: INFINITE_QUERY_LIMIT,
-            cursor: pageParam ?? null,
-          }
+  const { data, isLoading, fetchNextPage } =
+    useInfiniteQuery({
+      queryKey: ['messages', fileId],
+      queryFn: async ({ pageParam }) => {
+        const response = await invoke<{ messages: MessageType[]; nextCursor?: string }>(
+          'get_messages',
+          { fileId, limit: INFINITE_QUERY_LIMIT, cursor: pageParam ?? null }
         );
         return response;
-      } else {
-        // Fallback for web (if needed)
-        const cursor = pageParam as string | undefined;
-        const params = new URLSearchParams({
-          limit: INFINITE_QUERY_LIMIT.toString(),
-        });
-        if (cursor) params.set('cursor', cursor);
-        
-        const res = await fetch(`/api/messages/${fileId}?${params}`);
-        if (!res.ok) throw new Error('Failed to fetch messages');
-        return (await res.json()) as GetFileMessagesResponse;
-      }
-    },
-    getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
-    initialPageParam: undefined as string | undefined,
-  });
+      },
+      getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
+      initialPageParam: undefined as string | undefined,
+    });
 
   const messages = data?.pages.flatMap((page) => page.messages) ?? [];
 
@@ -69,8 +50,8 @@ const Messages = ({ fileId }: MessagesProps) => {
   };
 
   const combinedMessages = [
-    ...(isAiThinking ? [loadingMessage] : []),
     ...messages,
+    ...(isAiThinking ? [loadingMessage] : []),
   ];
 
   const lastMessageRef = useRef<HTMLDivElement>(null);
@@ -86,8 +67,17 @@ const Messages = ({ fileId }: MessagesProps) => {
     }
   }, [entry, fetchNextPage]);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Always keep view anchored to the latest message at the bottom
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [combinedMessages.length, isAiThinking]);
+
   return (
-    <div className="flex max-h-[calc(100vh-3.5rem-7rem)] border-zinc-200 flex-1 flex-col-reverse gap-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch">
+    <div ref={scrollRef} className="flex max-h-[calc(100vh-3.5rem-7rem)] border-zinc-200 flex-1 flex-col gap-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch">
       {combinedMessages && combinedMessages.length > 0 ? (
         combinedMessages.map((message, i) => {
           const isNextMessageSamePerson =
