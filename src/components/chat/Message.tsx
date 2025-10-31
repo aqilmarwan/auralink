@@ -3,7 +3,7 @@ import { ExtendedMessage } from '@/types/message';
 import { Icons } from '../Icons';
 import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
-import { forwardRef } from 'react';
+import { forwardRef, useEffect, useMemo, useState } from 'react';
 
 interface MessageProps {
   message: ExtendedMessage;
@@ -12,6 +12,25 @@ interface MessageProps {
 
 const Message = forwardRef<HTMLDivElement, MessageProps>(
   ({ message, isNextMessageSamePerson }, ref) => {
+    // Word-by-word reveal for assistant messages (not for user or loading)
+    const isAnimatable = !message.isUserMessage && message.id !== 'loading-message' && typeof message.text === 'string';
+    const words = useMemo(() => (isAnimatable ? (message.text as string).split(/(\s+)/) : []), [isAnimatable, message.text]);
+    const [shown, setShown] = useState(isAnimatable ? '' : (typeof message.text === 'string' ? message.text : ''));
+
+    useEffect(() => {
+      if (!isAnimatable) return;
+      let i = 0;
+      const step = () => {
+        if (i <= words.length) {
+          setShown(words.slice(0, i).join(''));
+          i += 1;
+        } else {
+          clearInterval(timer);
+        }
+      };
+      const timer = setInterval(step, 20); // smooth but quick
+      return () => clearInterval(timer);
+    }, [isAnimatable, words]);
     return (
       <div
         ref={ref}
@@ -43,13 +62,13 @@ const Message = forwardRef<HTMLDivElement, MessageProps>(
           })}
         >
           <div
-            className={cn('px-4 py-2 rounded-lg inline-block', {
+            // subtle entry motion
+            data-tauri-anim
+            className={cn('px-4 py-2 rounded-lg inline-block animate-in fade-in-50 slide-in-from-bottom-1 duration-200', {
               'bg-blue-600 text-white': message.isUserMessage,
               'bg-gray-200 text-gray-900': !message.isUserMessage,
-              'rounded-br-none':
-                !isNextMessageSamePerson && message.isUserMessage,
-              'rounded-bl-none':
-                !isNextMessageSamePerson && !message.isUserMessage,
+              'rounded-br-none': !isNextMessageSamePerson && message.isUserMessage,
+              'rounded-bl-none': !isNextMessageSamePerson && !message.isUserMessage,
             })}
           >
             {typeof message.text === 'string' ? (
@@ -58,7 +77,7 @@ const Message = forwardRef<HTMLDivElement, MessageProps>(
                   'text-zinc-50': message.isUserMessage,
                 })}
               >
-                {message.text}
+                {isAnimatable ? shown : message.text}
               </ReactMarkdown>
             ) : (
               message.text

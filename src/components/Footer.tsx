@@ -14,8 +14,8 @@ const Footer = () => {
                     </div>
                     <div className="flex flex-row space-x-4">
                         <div className="flex items-center justify-between">
-                            <span className="text-slate-500">Powered by
-                                <span className="font-semibold text-slate-500"> Vercel </span>
+                            <span className="text-slate-500 pr-2">Powered by
+                                <span className="font-semibold text-slate-500"> Tauri </span>
                             </span>
                             <a
                                 className="flex items-center hover:opacity-50"
