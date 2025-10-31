@@ -1,10 +1,8 @@
-# Auralink
-
 <p align="center">
   <img src="public/trace.svg" alt="Auralink" width="96" />
 </p>
 
-<p>
+<p align="center">
   
   <a href="https://github.com/aqilmarwanazhar/auralink/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/aqilmarwanazhar/auralink?color=blue" /></a>
   <a href="https://github.com/aqilmarwanazhar/auralink/commits"><img alt="Last Commit" src="https://img.shields.io/github/last-commit/aqilmarwanazhar/auralink?color=brightgreen" /></a>
