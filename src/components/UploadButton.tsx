@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogTrigger } from './ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { IconArrowRight, IconSearch } from "@tabler/icons-react";
 import Dropzone from 'react-dropzone';
@@ -10,7 +10,8 @@ import { Progress } from './ui/progress';
 import { useToast } from './ui/use-toast';
 import { useRouter } from 'next/navigation';
 import { invoke } from '@tauri-apps/api/core';
-import { writeFile } from '@tauri-apps/plugin-fs';
+// Frontend FS plugin not used; we save via a backend Tauri command
+import { isTauri } from '@/lib/runtime';
 
 const MAX_UPLOAD_MB = 16; // uniform access for everyone
 
@@ -42,24 +43,21 @@ const UploadDropzone = () => {
     const progressInterval = startSimulatedProgress();
 
     try {
+      // Attempt Tauri path; if this is not the desktop app, the calls below will throw and be handled by catch
       // Generate unique file ID
       const fileId = crypto.randomUUID();
 
-      // Save file to temp location using Tauri FS API
+      // Save file to app data directory using Tauri FS API
       const arrayBuffer = await file.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Write to temp directory
-      const tempPath = await invoke<string>('get_temp_path');
-      const filePath = `${tempPath}/${fileId}.${file.name.split('.').pop()}`;
-      
-      await writeFile(filePath, uint8Array);
-
-      // Call Tauri command which uses gRPC
-      const result = await invoke<string>('upload_video_bytes', {
-           fileId,
-           bytes: Array.from(uint8Array),
-         });
+      const ext = (file.name.split('.').pop() || 'mp4');
+      await invoke<string>('save_file_bytes', {
+        fileId,
+        ext,
+        bytes: Array.from(uint8Array),
+        name: file.name,
+      });
 
       clearInterval(progressInterval);
       setUploadProgress(100);
@@ -67,10 +65,7 @@ const UploadDropzone = () => {
       // Navigate to file view
       router.push(`/dashboard/${fileId}`);
 
-      toast({
-        title: 'Success',
-        description: 'File uploaded and processing started',
-      });
+      toast({ title: 'Success', description: 'File saved locally' });
     } catch (error) {
       clearInterval(progressInterval);
       toast({
@@ -190,6 +185,7 @@ const UploadButton = () => {
       </DialogTrigger>
 
       <DialogContent>
+        <DialogTitle className="sr-only">Upload MP4</DialogTitle>
         <UploadDropzone />
       </DialogContent>
     </Dialog>
