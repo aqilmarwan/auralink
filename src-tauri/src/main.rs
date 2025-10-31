@@ -3,4 +3,9 @@
 
 fn main() {
   app_lib::run();
+  let _child = std::process::Command::new("python")
+    .args(["backend/mcp/transcription_server.py"])
+    .spawn()
+    .expect("failed to start transcription server");
+  // store handle and terminate on app exit (handled in app_lib)
 }
