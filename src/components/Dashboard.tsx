@@ -1,61 +1,149 @@
 'use client';
 
 import UploadButton from './UploadButton';
-import { Ghost, Loader2, MessageSquare, Plus, Trash } from 'lucide-react';
+import FileList from './FileList';
+import { Ghost, Loader2, MessageSquare, Plus, Trash, File as FileIcon } from 'lucide-react';
 import Skeleton from 'react-loading-skeleton';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Button } from './ui/button';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { isTauri } from '@/lib/runtime';
+import { convertFileSrc } from '@tauri-apps/api/core';
 
 type FileItem = {
   id: string;
   name: string;
+  path: string;
+  thumbPath?: string | null;
   createdAt: string;
 };
 
 const Dashboard = () => {
-  const [files, setFiles] = useState<FileItem[] | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [currentlyDeletingFile, setCurrentlyDeletingFile] = useState<string | null>(null);
+  const Thumb = ({ fileId }: { fileId: string }) => {
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const [poster, setPoster] = useState<string | null>(null);
+    const [src, setSrc] = useState<string | null>(null);
+    const seekTimes = useRef<number[]>([0.1, 0.5, 1, 2, 3]);
+    const attemptIndex = useRef<number>(0);
+    const triesLeft = useRef<number>(8);
 
-  const fetchFiles = async () => {
-    setIsLoading(true);
-    try {
-      let result: FileItem[] = [];
-      if (isTauri()) {
-        result = await invoke<FileItem[]>('list_files');
-      } else {
-        const res = await fetch('/api/files');
-        result = (await res.json()) as FileItem[];
+    useEffect(() => {
+      let active = true;
+      (async () => {
+        try {
+          // Prefer blob URL to avoid file:// canvas tainting/cross-origin issues
+          const bytes = await (window as any).__TAURI__?.tauri?.invoke('read_file_bytes', { fileId });
+          if (!active) return;
+          const u8 = new Uint8Array(bytes as number[]);
+          const blob = new Blob([u8], { type: 'video/mp4' });
+          const url = URL.createObjectURL(blob);
+          setSrc(url);
+        } catch {
+          // Fallback to converted file src if bytes read fails
+          try {
+            const path = await (window as any).__TAURI__?.tauri?.invoke('get_file_path', { fileId });
+            if (!active) return;
+            if (path) setSrc(convertFileSrc(path as string));
+          } catch {}
+        }
+      })();
+      return () => {
+        active = false;
+        if (src && src.startsWith('blob:')) URL.revokeObjectURL(src);
+      };
+    }, [fileId]);
+
+    const tryNextSeek = () => {
+      const v = videoRef.current;
+      if (!v) return;
+      if (attemptIndex.current >= seekTimes.current.length) return;
+      try {
+        v.currentTime = seekTimes.current[attemptIndex.current++];
+      } catch {}
+    };
+
+    const drawFrame = () => {
+      const v = videoRef.current;
+      const c = canvasRef.current;
+      if (!v || !c) return false;
+      try {
+        c.width = v.videoWidth || 160;
+        c.height = v.videoHeight || 90;
+        const ctx = c.getContext('2d');
+        if (!ctx) return false;
+        ctx.drawImage(v, 0, 0, c.width, c.height);
+        // Quick non-empty check: sample a few pixels
+        const data = ctx.getImageData(0, 0, 4, 4).data;
+        let allZero = true;
+        for (let i = 0; i < data.length; i++) {
+          if (data[i] !== 0) { allZero = false; break; }
+        }
+        if (allZero) return false;
+        const url = c.toDataURL('image/jpeg');
+        setPoster(url);
+        return true;
+      } catch {
+        return false;
       }
-      setFiles(result ?? []);
-    } catch {
-      setFiles([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  useEffect(() => {
-    fetchFiles();
-  }, []);
-
-  const handleDelete = async (id: string) => {
-    setCurrentlyDeletingFile(id);
-    try {
-      if (isTauri()) {
-        await invoke('delete_file', { id });
-      } else {
-        await fetch(`/api/files/${id}`, { method: 'DELETE' });
-      }
-      await fetchFiles();
-    } finally {
-      setCurrentlyDeletingFile(null);
-    }
+    return (
+      <div className="h-full w-full">
+        {poster ? (
+          <img src={poster} className="h-full w-full object-cover" alt="thumb" />
+        ) : (
+          <>
+            <video
+              ref={videoRef}
+              src={src ?? ''}
+              muted
+              playsInline
+              preload="metadata"
+              crossOrigin="anonymous"
+              className="h-full w-full object-cover"
+              onLoadedMetadata={() => {
+                attemptIndex.current = 0;
+                tryNextSeek();
+              }}
+              onLoadedData={() => {
+                // Try drawing once data is available
+                if (!drawFrame()) tryNextSeek();
+              }}
+              onCanPlay={() => {
+                // As a fallback, poll a few times in case seek events are flaky
+                if (poster) return;
+                if (triesLeft.current <= 0) return;
+                const id = setInterval(() => {
+                  if (poster) { clearInterval(id); return; }
+                  if (drawFrame()) { clearInterval(id); return; }
+                  triesLeft.current -= 1;
+                  if (triesLeft.current <= 0) clearInterval(id);
+                }, 150);
+              }}
+              onSeeked={() => {
+                // If drawing failed, attempt next seek position
+                if (!drawFrame()) {
+                  tryNextSeek();
+                }
+              }}
+              onError={async () => {
+                // Ultimate fallback: ask backend to generate a jpg via ffmpeg
+                try {
+                  const path = await (window as any).__TAURI__?.tauri?.invoke('generate_thumbnail', { fileId });
+                  if (path) setPoster(convertFileSrc(path as string));
+                } catch {}
+              }}
+            />
+            <canvas ref={canvasRef} className="hidden" />
+          </>
+        )}
+      </div>
+    );
   };
+  // Listing moved to FileList component to simplify and isolate bridge issues
 
   return (
     <main className="mx-auto max-w-7xl md:p-10">
@@ -65,71 +153,7 @@ const Dashboard = () => {
         <UploadButton />
       </div>
 
-      {files && files?.length !== 0 ? (
-        <ul className="mt-8 grid grid-cols-1 gap-6 divide-y divide-zinc-200 md:grid-cols-2 lg:grid-cols-3">
-          {files
-            .sort(
-              (a, b) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime()
-            )
-            .map((file) => (
-              <li
-                key={file.id}
-                className="col-span-1 divide-y divide-gray-200 rounded-lg bg-white shadow transition hover:shadow-lg"
-              >
-                <Link
-                  href={`/dashboard/${file.id}`}
-                  className="flex flex-col gap-2"
-                >
-                  <div className="pt-6 px-6 flex w-full items-center justify-between space-x-6">
-                    <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500" />
-                    <div className="flex-1 truncate">
-                      <div className="flex items-center space-x-3">
-                        <h3 className="truncate text-lg font-medium text-zinc-900">
-                          {file.name}
-                        </h3>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-
-                <div className="px-6 mt-4 grid grid-cols-3 place-items-center py-2 gap-6 text-xs text-zinc-500">
-                  <div className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    {format(new Date(file.createdAt), 'MMM yyyy')}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4" />
-                    mocked
-                  </div>
-
-                  <Button
-                    onClick={() => handleDelete(file.id)}
-                    size="sm"
-                    className="w-full"
-                    variant="destructive"
-                  >
-                    {currentlyDeletingFile === file.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </li>
-            ))}
-        </ul>
-      ) : isLoading ? (
-        <Skeleton height={100} className="my-2" count={3} />
-      ) : (
-        <div className="mt-16 flex flex-col items-center gap-2">
-          <Ghost className="h-8 w-8 text-zinc-800" />
-          <h3 className="font-semibold text-xl">Pretty empty around here</h3>
-          <p>Let&apos;s upload your first PDF.</p>
-        </div>
-      )}
+      <FileList />
     </main>
   );
 };
