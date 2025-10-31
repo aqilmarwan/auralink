@@ -2,7 +2,7 @@
   <img src="public/trace.svg" alt="Auralink" width="96" />
 </p>
 
-<p align="center">
+<div align="center">
   
   <a href="https://github.com/aqilmarwanazhar/auralink/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/aqilmarwanazhar/auralink?color=blue" /></a>
   <a href="https://github.com/aqilmarwanazhar/auralink/commits"><img alt="Last Commit" src="https://img.shields.io/github/last-commit/aqilmarwanazhar/auralink?color=brightgreen" /></a>
@@ -10,10 +10,10 @@
   <img alt="License" src="https://img.shields.io/badge/license-Proprietary-lightgrey" />
   <a href="https://github.com/aqilmarwanazhar/auralink/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/aqilmarwanazhar/auralink?style=flat&color=blue" /></a>
   <a href="https://github.com/aqilmarwanazhar/auralink/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/aqilmarwanazhar/auralink?style=flat&color=blue" /></a>
-  
-</p>
 
-Modern, local-first AI assistant for video understanding and document generation. Auralink pairs a sleek Next.js UI with a Rust (Tauri) app and Python micro-agents over gRPC for transcription, vision analysis, and content generation (PDF/PPT).
+  <a> Modern, local-first AI assistant for video understanding and document generation. Auralink pairs a sleek Next.js UI with a Rust (Tauri) app and Python micro-agents over gRPC for transcription, vision analysis, and content generation (PDF/PPT). <a>
+
+</div>
 
 <p align="center">
   <img src="public/ss.png" alt="Auralink UI" width="720" />
