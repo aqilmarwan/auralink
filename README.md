@@ -3,8 +3,9 @@
 </p>
 
 <div align="center">
-  <a href="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54"><img alt="Python" src="https://img.shields.io/badge/python-3670A0?style=flat&logo=python&logoColor=ffdd54" /></a>
-  <a href="https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white"><img alt="Rust" src="https://shields.io/badge/-Rust-3776AB?style=flat&logo=rust" /></a>
+  <a href="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white"><img alt="Typescript" src="https://www.typescriptlang.org/" /></a>
+  <a href="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54"><img alt="Python" src="https://www.python.org/" /></a>
+  <a href="https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white"><img alt="Rust" src="https://rust-lang.org/" /></a>
   <a href="https://github.com/aqilmarwan/auralink/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/aqilmarwan/auralink?color=blue" /></a>
   <a href="https://github.com/aqilmarwan/auralink/commits"><img alt="Last Commit" src="https://img.shields.io/github/last-commit/aqilmarwan/auralink?color=brightgreen" /></a>
   <a href="https://github.com/aqilmarwan/auralink/issues"><img alt="Open Issues" src="https://img.shields.io/github/issues/aqilmarwan/auralink?color=brightgreen&label=issues" /></a>
@@ -12,7 +13,7 @@
   <a href="https://github.com/aqilmarwan/auralink/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/aqilmarwan/auralink?style=flat&color=blue" /></a>
   <a href="https://github.com/aqilmarwan/auralink/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/aqilmarwan/auralink?style=flat&color=blue" /></a>
 
-  <a> Modern, local-first AI assistant for video understanding and document generation. Auralink pairs a sleek Next.js UI with a Rust (Tauri) app and Python micro-agents over gRPC for transcription, vision analysis, and content generation (PDF/PPT). <a>
+  <a> Modern local AI assistant for video understanding and document generation. Auralink pairs a sleek Next.js UI with a Rust (Tauri) app and Python micro-agents over gRPC for transcription, vision analysis, and content generation (PDF/PPT). <a>
 </div>
 
 > [!NOTE]
@@ -27,14 +28,13 @@
 
 ## Features
 
-- **Chat-first workflow**: Ask questions about a video or request outcomes (e.g., “Create a PowerPoint”).
-- **Local agents**:
-  - Transcription (audio → text)
-  - Vision (objects, graphs/plots, caption)
-  - Generation (summary, PDF, PowerPoint)
+- **Chat Workflow**: Ask questions about a video or request outcomes (e.g., “Create a PowerPoint”).
+- **Local Agents**:
+  - Transcription (audio → text).
+  - Vision (objects, graphs/plots, caption).
+  - Generation (summary, PDF, PowerPoint).
 - **Fast UI**: Smooth, bottom-up chronological chat with optimistic updates and typing animation.
-- **Thumbnails**: Auto-generated via ffmpeg for quick visual context.
-- **Local persistence**: SQLite (via rusqlite) stores files and chat history.
+- **Local persistence**: SQLite (via rusqlite) stores files and chat history locally.
 
 ## Architecture
 
@@ -49,26 +49,15 @@ Next.js (UI)  ──invoke──▶  Tauri (Rust)  ──gRPC──▶  Python a
 - Desktop shell: `src-tauri/` (Rust, Tauri 2). Exposes commands with `#[tauri::command]` in `src-tauri/src/lib.rs`.
 - Agents: `backend/mcp/*.py` (Python, gRPC servers). Protos in `proto/audio_service.proto`. Python stubs generated to `backend/generated/`.
 
-### Data flow (chat)
+### Data Flow (chat)
 
 1. User submits a prompt in `ChatInput.tsx`.
 2. Frontend invokes `send_message` (Tauri) → `src-tauri/src/lib.rs`.
 3. Rust persists the user message, scores intent, and calls agents via gRPC as needed.
 4. Agent responses are post-processed into friendly text and saved as assistant messages.
-5. Frontend invalidates the messages query; UI displays messages in chronological order (newest at bottom). Assistant responses appear immediately after the user’s prompt.
+5. Frontend invalidates the messages query; UI displays messages in chronological order. Assistant responses appear immediately after the user’s prompt.
 
-### Persistence
-
-- SQLite DB file in the OS’s local data dir: `auralink/auralink.sqlite`.
-- Tables: `files`, `messages`.
-- Message listing is ordered by `created_at` ascending and paginated using `createdAt` cursors for stable chronological scroll.
-
-### Media handling
-
-- Videos are saved to the same data directory.
-- Thumbnails are created via `ffmpeg` at 1s mark and stored under a `thumbs/` directory.
-
-### Agents and ports
+### Agents
 
 - Transcription: `backend/mcp/transcription_server.py` (gRPC :50051)
 - Vision: `backend/mcp/vision_server.py` (gRPC :50052)
@@ -85,12 +74,11 @@ Rust auto-generates Python gRPC stubs when the app starts (best effort) and laun
   - Detect objects and identify graphs from a representative frame.
   - Generate summaries of the chat/file.
   - Produce a PDF and/or a PowerPoint.
-- Assistant responses must appear immediately after the corresponding user prompt in the chat and render cleanly.
 - When generating a file (PDF/PPT), the assistant message includes a clickable `file://` hyperlink with the full local path for quick access.
 
 ## Tech Stack
 
-- UI: Next.js 14, React 18, Tailwind, React Query, Mantine hooks, React Markdown
+- UI: Next.js 14, React 18, Tailwind, React Query, React Markdown
 - Desktop: Tauri 2 (Rust), rusqlite, tonic (gRPC client)
 - Agents: Python 3, gRPC, Whisper, OpenVINO/ONNX Runtime, MoviePy, NumPy
 - Media tooling: ffmpeg (required on host)
@@ -102,7 +90,6 @@ Rust auto-generates Python gRPC stubs when the app starts (best effort) and laun
 - Node.js 18+ and pnpm/npm
 - Rust toolchain and Tauri prerequisites (see Tauri docs for your OS)
 - Python 3.11+
-- ffmpeg installed and on PATH
 
 ### Install dependencies
 
@@ -136,7 +123,7 @@ Note: Local agents and Tauri commands are expected; web-only mode is limited.
 
 ## Usage Guide
 
-1. Open the app and upload/register a video.
+1. Open the app and upload a video.
 2. Open the chat for a file and ask a question or request an action.
 3. For generation tasks (PDF/PPT), the assistant will reply with a link like:
 
@@ -154,11 +141,16 @@ Note: Local agents and Tauri commands are expected; web-only mode is limited.
 - `backend/mcp/*.py` – Python agent servers
 - `proto/audio_service.proto` – Protobuf definitions for services
 
-## Design Notes
+## Limitation
 
-- Responses are composed into concise, user-friendly sentences while retaining essential details.
-- Errors from gRPC are sanitized into helpful messages; transient transport failures are retried lightly.
-- Pagination is stable via `createdAt` cursors, so infinite scroll behaves predictably.
+- Initial chat responses are hardcoded to provide immediate feedback while Python agents load their models into memory to ensure a responsive user experience during the 10–30 second startup period.
+- Model inference runs locally and may be slower on CPU-only systems. OpenVINO optimization is used where available to improve performance.
+- - **Model Limitations**: The project uses pre-trained models that are not fine-tuned on MP4-specific content:
+  - **Transcription**: OpenAI Whisper `base` model for speech-to-text.
+  - **Vision**: DETR (object detection), BLIP (captioning), and TrOCR (OCR) for visual analysis.
+  - **Generation**: FLAN-T5-small for text summarization.
+
+  - If time permits, these models can be fine-tuned on domain-specific MP4 video content to improve accuracy and contextual understanding for video-based queries.
 
 ## Troubleshooting
 
