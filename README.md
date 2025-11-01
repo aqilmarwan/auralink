@@ -1,22 +1,28 @@
 <p align="center">
-  <img src="public/trace.svg" alt="Auralink" width="96" />
+  <img src="public/trace.svg" alt="Auralink" width="250" height=auto />
 </p>
 
 <div align="center">
-  
-  <a href="https://github.com/aqilmarwanazhar/auralink/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/aqilmarwanazhar/auralink?color=blue" /></a>
-  <a href="https://github.com/aqilmarwanazhar/auralink/commits"><img alt="Last Commit" src="https://img.shields.io/github/last-commit/aqilmarwanazhar/auralink?color=brightgreen" /></a>
-  <a href="https://github.com/aqilmarwanazhar/auralink/issues"><img alt="Open Issues" src="https://img.shields.io/github/issues/aqilmarwanazhar/auralink?color=brightgreen&label=issues" /></a>
+  <a href="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54"><img alt="Python" src="https://img.shields.io/badge/python-3670A0?style=flat&logo=python&logoColor=ffdd54" /></a>
+  <a href="https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white"><img alt="Rust" src="https://shields.io/badge/-Rust-3776AB?style=flat&logo=rust" /></a>
+  <a href="https://github.com/aqilmarwan/auralink/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/aqilmarwan/auralink?color=blue" /></a>
+  <a href="https://github.com/aqilmarwan/auralink/commits"><img alt="Last Commit" src="https://img.shields.io/github/last-commit/aqilmarwan/auralink?color=brightgreen" /></a>
+  <a href="https://github.com/aqilmarwan/auralink/issues"><img alt="Open Issues" src="https://img.shields.io/github/issues/aqilmarwan/auralink?color=brightgreen&label=issues" /></a>
   <img alt="License" src="https://img.shields.io/badge/license-Proprietary-lightgrey" />
-  <a href="https://github.com/aqilmarwanazhar/auralink/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/aqilmarwanazhar/auralink?style=flat&color=blue" /></a>
-  <a href="https://github.com/aqilmarwanazhar/auralink/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/aqilmarwanazhar/auralink?style=flat&color=blue" /></a>
+  <a href="https://github.com/aqilmarwan/auralink/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/aqilmarwan/auralink?style=flat&color=blue" /></a>
+  <a href="https://github.com/aqilmarwan/auralink/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/aqilmarwan/auralink?style=flat&color=blue" /></a>
 
   <a> Modern, local-first AI assistant for video understanding and document generation. Auralink pairs a sleek Next.js UI with a Rust (Tauri) app and Python micro-agents over gRPC for transcription, vision analysis, and content generation (PDF/PPT). <a>
-
 </div>
 
+> [!NOTE]
+> Development has stopped indefinitely!
+
+> [!WARNING]
+> Auralink is currently in the early stages of development and is not yet ready for daily use!
+
 <p align="center">
-  <img src="public/ss.png" alt="Auralink UI" width="720" />
+  <img src="public/ss.png" alt="Auralink UI" width="1020" />
 </p>
 
 ## Features
@@ -72,7 +78,7 @@ Rust auto-generates Python gRPC stubs when the app starts (best effort) and laun
 
 ## Functional Requirements
 
-- Users can upload or register video files and see them listed with thumbnails.
+- Users can upload or register video files and see them listed on dashboard.
 - Users can chat about a selected file; messages are persisted locally.
 - The system can:
   - Transcribe audio from the video.
@@ -108,7 +114,7 @@ Install Python deps for agents:
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate  # macOS/Linux
+source .venv/bin/activate 
 pip install -r backend/requirements.txt
 ```
 
