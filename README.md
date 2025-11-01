@@ -3,9 +3,9 @@
 </p>
 
 <div align="center">
-  <a href="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white"><img alt="Typescript" src="https://www.typescriptlang.org/" /></a>
-  <a href="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54"><img alt="Python" src="https://www.python.org/" /></a>
-  <a href="https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white"><img alt="Rust" src="https://rust-lang.org/" /></a>
+  <a href="https://www.python.org/"><img alt="Typescript" src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white" /></a>
+  <a href="https://www.typescriptlang.org/"><img alt="Python" src="https://img.shields.io/badge/python-3670A0?style=flat&logo=python&logoColor=white" /></a>
+  <a href="https://rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white" /></a>
   <a href="https://github.com/aqilmarwan/auralink/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/aqilmarwan/auralink?color=blue" /></a>
   <a href="https://github.com/aqilmarwan/auralink/commits"><img alt="Last Commit" src="https://img.shields.io/github/last-commit/aqilmarwan/auralink?color=brightgreen" /></a>
   <a href="https://github.com/aqilmarwan/auralink/issues"><img alt="Open Issues" src="https://img.shields.io/github/issues/aqilmarwan/auralink?color=brightgreen&label=issues" /></a>
