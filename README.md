@@ -75,13 +75,10 @@ Rust auto-generates Python gRPC stubs when the app starts (best effort) and laun
   - Generate summaries of the chat/file.
   - Produce a PDF and/or a PowerPoint.
 - When generating a file (PDF/PPT), the assistant message includes a clickable `file://` hyperlink with the full local path for quick access.
-
-<p align="center">
-  <a>
-  Access colab to see full training pipeline -> 
+- Access colab to see full training pipeline &rarr; 
+  <a
+   href="https://colab.research.google.com/drive/11yn8RIMEzRj4gYjsRwirK6b3c_j59SKa#scrollTo=HdKOmSsANKND"><img alt="Model" src="https://img.shields.io/badge/Google_Colab-F9AB00?style=plastic&logo=google-colab&logoColor=white" />
   </a>
-  <a href="https://colab.research.google.com/drive/11yn8RIMEzRj4gYjsRwirK6b3c_j59SKa#scrollTo=HdKOmSsANKND"><img alt="Model" src="https://img.shields.io/badge/Google_Colab-F9AB00?style=plastic&logo=google-colab&logoColor=white" /></a>
-</p>
 
 ## Tech Stack
 
